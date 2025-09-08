@@ -128,11 +128,22 @@ export async function GET(request: NextRequest) {
       summary = fetcher.generateDataSummary(data);
     }
     
-    return NextResponse.json({
+    const result = {
       success: true,
       data,
       summary,
       timestamp: new Date().toISOString()
+    };
+    
+    return NextResponse.json(result, {
+      headers: {
+        // Vercel Edge Cache: cache for 1 day, revalidate every hour
+        'Cache-Control': 'public, s-maxage=86400, max-age=3600, stale-while-revalidate=86400',
+        // CDN Cache Tags for purging if needed
+        'Cache-Tag': `akindo-data${single ? '-single' : page ? `-page-${page}` : '-all'}`,
+        // Vary header for different request parameters
+        'Vary': 'Accept-Encoding'
+      }
     });
     
   } catch (error) {

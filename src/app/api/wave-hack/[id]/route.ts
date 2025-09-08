@@ -59,10 +59,21 @@ export async function GET(
       criteriaCount: response.criteria?.length || 0
     });
     
-    return NextResponse.json({
+    const result = {
       success: true,
       data: response,
       timestamp: new Date().toISOString()
+    };
+    
+    return NextResponse.json(result, {
+      headers: {
+        // Vercel Edge Cache: cache for 1 day, revalidate every hour
+        'Cache-Control': 'public, s-maxage=86400, max-age=3600, stale-while-revalidate=86400',
+        // CDN Cache Tags for purging specific wave hacks if needed
+        'Cache-Tag': `wave-hack-${id}`,
+        // Vary header for different request parameters
+        'Vary': 'Accept-Encoding'
+      }
     });
     
   } catch (error) {
