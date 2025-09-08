@@ -2,14 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import ky from 'ky';
 
 interface AkindoApiResponse {
-  data: any[];
+  items: any[];
   meta: {
-    pagination: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
+    totalPages: number;
+    totalItems: number;
   };
 }
 
@@ -46,17 +42,17 @@ class AkindoDataFetcher {
     try {
       // Fetch first page to get pagination info
       const firstPageResponse = await this.fetchPage(1);
-      const { pageCount, total } = firstPageResponse.meta.pagination;
+      const { totalPages, totalItems } = firstPageResponse.meta;
       
-      console.log(`Total items: ${total}, Pages: ${pageCount}`);
+      console.log(`Total items: ${totalItems}, Pages: ${totalPages}`);
       
       // Collect all data starting with first page
-      let allData = [...firstPageResponse.data];
+      let allData = [...firstPageResponse.items];
       
       // Fetch remaining pages if any
-      if (pageCount > 1) {
+      if (totalPages > 1) {
         const remainingPagePromises = [];
-        for (let page = 2; page <= pageCount; page++) {
+        for (let page = 2; page <= totalPages; page++) {
           remainingPagePromises.push(this.fetchPage(page));
         }
         
@@ -64,7 +60,7 @@ class AkindoDataFetcher {
         
         // Combine all data
         for (const pageResponse of remainingPages) {
-          allData = allData.concat(pageResponse.data);
+          allData = allData.concat(pageResponse.items);
         }
       }
       
@@ -108,25 +104,23 @@ export async function GET(request: NextRequest) {
       // Fetch specific page
       const pageNum = parseInt(page, 10);
       const response = await fetcher.fetchPage(pageNum);
-      data = response.data;
+      data = response.items;
       summary = {
         page: pageNum,
-        pageSize: response.meta.pagination.pageSize,
-        pageCount: response.meta.pagination.pageCount,
-        total: response.meta.pagination.total,
-        itemsOnPage: response.data.length
+        totalPages: response.meta.totalPages,
+        totalItems: response.meta.totalItems,
+        itemsOnPage: response.items.length
       };
     } else if (single) {
       // Fetch single page (first page only)
       const response = await fetcher.fetchPage(1);
-      data = response.data;
+      data = response.items;
       summary = {
         page: 1,
-        pageSize: response.meta.pagination.pageSize,
-        pageCount: response.meta.pagination.pageCount,
-        total: response.meta.pagination.total,
-        itemsOnPage: response.data.length,
-        dataSummary: fetcher.generateDataSummary(response.data)
+        totalPages: response.meta.totalPages,
+        totalItems: response.meta.totalItems,
+        itemsOnPage: response.items.length,
+        dataSummary: fetcher.generateDataSummary(response.items)
       };
     } else {
       // Fetch all pages
