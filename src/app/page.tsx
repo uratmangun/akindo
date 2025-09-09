@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
+import { sdk } from '@farcaster/miniapp-sdk'
 interface Token {
   name: string;
   address: string;
@@ -66,7 +66,12 @@ export default function Home() {
   const [selectedWaveHack, setSelectedWaveHack] = useState<WaveHackDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-
+  useEffect(() => {
+    const initializeSdk = async () => {
+      await sdk.actions.ready();
+    };
+    initializeSdk();
+  }, []);
   useEffect(() => {
     const fetchData = async () => {
       try {
