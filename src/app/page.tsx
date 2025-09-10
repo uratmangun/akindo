@@ -210,9 +210,16 @@ export default function Home() {
                       <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mb-1">
                         {hack.id}
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                        {hack.title}
-                      </h3>
+                      <a 
+                        href={`https://app.akindo.io/wave-hacks/${hack.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
+                          {hack.title}
+                        </h3>
+                      </a>
                     </div>
 
                     {/* Duration */}
