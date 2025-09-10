@@ -198,87 +198,88 @@ export default function Home() {
             <div className="px-6 py-4 bg-cyan-600 dark:bg-cyan-700">
               <h2 className="text-xl font-semibold text-white">Active Wave Hacks</h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                      ID & Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                      Dates
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                      Token
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-600">
-                  {waveHacks.map((hack) => (
-                    <tr 
-                      key={hack.id} 
-                      className="hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
-                      onClick={() => handleRowClick(hack.id)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {waveHacks.map((hack) => (
+                  <div 
+                    key={hack.id} 
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-6 hover:shadow-lg transition-shadow hover:border-cyan-300 dark:hover:border-cyan-500"
+                  >
+                    {/* ID and Title */}
+                    <div className="mb-4">
+                      <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mb-1">
+                        {hack.id}
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                        {hack.title}
+                      </h3>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="mb-4">
+                      <div className="text-sm text-slate-700 dark:text-slate-300">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Building:</span>
+                          <span>{hack.buildingDays} days</span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="font-medium">Judging:</span>
+                          <span>{hack.judgingDays} days</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dates */}
+                    <div className="mb-4 space-y-1">
+                      <div className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="font-medium">Opened:</span> {formatDate(hack.activeWave.openedAt)}
+                      </div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="font-medium">Started:</span> {formatDate(hack.activeWave.startedAt)}
+                      </div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="font-medium">Deadline:</span> {formatDate(hack.activeWave.submissionDeadline)}
+                      </div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="font-medium">Judging:</span> {formatDate(hack.activeWave.judgementDeadline)}
+                      </div>
+                    </div>
+
+                    {/* Token */}
+                    <div className="mb-4">
+                      {hack.grantDenomination && hack.activeWave?.grantAmount ? (
                         <div>
-                          <div className="text-sm font-mono text-slate-500 dark:text-slate-400">
-                            {hack.id}
+                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {parseFloat(hack.activeWave.grantAmount).toLocaleString()} {hack.grantDenomination.name}
                           </div>
-                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100 mt-1">
-                            {hack.title}
+                          <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 truncate">
+                            {hack.grantDenomination.address}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-900 dark:text-slate-100">
-                          <div>Building: {hack.buildingDays} days</div>
-                          <div>Judging: {hack.judgingDays} days</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
-                        <div className="space-y-1">
-                          <div><span className="font-medium">Opened:</span> {formatDate(hack.activeWave.openedAt)}</div>
-                          <div><span className="font-medium">Started:</span> {formatDate(hack.activeWave.startedAt)}</div>
-                          <div><span className="font-medium">Deadline:</span> {formatDate(hack.activeWave.submissionDeadline)}</div>
-                          <div><span className="font-medium">Judging:</span> {formatDate(hack.activeWave.judgementDeadline)}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-900 dark:text-slate-100">
-                          {hack.grantDenomination && hack.activeWave?.grantAmount ? (
-                            <div>
-                              <div className="font-medium">
-                                {parseFloat(hack.activeWave.grantAmount).toLocaleString()} {hack.grantDenomination.name}
-                              </div>
-                              <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                                ({hack.grantDenomination.address})
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="font-medium">N/A</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          hack.isPublic 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {hack.isPublic ? 'Public' : 'Private'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      ) : (
+                        <div className="text-sm font-medium text-slate-500 dark:text-slate-400">N/A</div>
+                      )}
+                    </div>
+
+                    {/* Status and Button */}
+                    <div className="flex items-center justify-between">
+                      <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                        hack.isPublic 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {hack.isPublic ? 'Public' : 'Private'}
+                      </span>
+                      <button
+                        onClick={() => handleRowClick(hack.id)}
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -330,6 +331,80 @@ export default function Home() {
 
                 {selectedWaveHack && !modalLoading && !modalError && (
                   <div className="space-y-6">
+                    {/* Wave Hack Information */}
+                    <div>
+                      <h4 className="text-md font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                        Wave Hack Information
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
+                        {/* Duration */}
+                        <div>
+                          <h5 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Duration</h5>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm text-slate-700 dark:text-slate-300">
+                              <span>Building:</span>
+                              <span className="font-medium">{waveHacks.find(h => h.id === selectedWaveHack.id)?.buildingDays || 'N/A'} days</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-slate-700 dark:text-slate-300">
+                              <span>Judging:</span>
+                              <span className="font-medium">{waveHacks.find(h => h.id === selectedWaveHack.id)?.judgingDays || 'N/A'} days</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Timeline */}
+                        <div>
+                          <h5 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Timeline</h5>
+                          <div className="space-y-1">
+                            {(() => {
+                              const hack = waveHacks.find(h => h.id === selectedWaveHack.id);
+                              if (!hack) return null;
+                              return (
+                                <>
+                                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                                    <span className="font-medium">Opened:</span> {formatDate(hack.activeWave.openedAt)}
+                                  </div>
+                                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                                    <span className="font-medium">Started:</span> {formatDate(hack.activeWave.startedAt)}
+                                  </div>
+                                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                                    <span className="font-medium">Deadline:</span> {formatDate(hack.activeWave.submissionDeadline)}
+                                  </div>
+                                  <div className="text-sm text-slate-700 dark:text-slate-300">
+                                    <span className="font-medium">Judging:</span> {formatDate(hack.activeWave.judgementDeadline)}
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Prize Information */}
+                        <div className="md:col-span-2">
+                          <h5 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Prize</h5>
+                          {(() => {
+                            const hack = waveHacks.find(h => h.id === selectedWaveHack.id);
+                            if (!hack) return null;
+                            return hack.grantDenomination && hack.activeWave?.grantAmount ? (
+                              <div className="bg-white dark:bg-slate-800 p-3 rounded border">
+                                <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                  {parseFloat(hack.activeWave.grantAmount).toLocaleString()} {hack.grantDenomination.name}
+                                </div>
+                                <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
+                                  Token Address: {hack.grantDenomination.address}
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                  Decimals: {hack.grantDenomination.decimals}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-slate-500 dark:text-slate-400">No prize information available</div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Description */}
                     <div>
                       <h4 className="text-md font-semibold text-slate-900 dark:text-slate-100 mb-2">
