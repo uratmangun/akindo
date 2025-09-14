@@ -66,11 +66,21 @@ export default function Home() {
   const [selectedWaveHack, setSelectedWaveHack] = useState<WaveHackDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
     const initializeSdk = async () => {
       await sdk.actions.ready();
     };
     initializeSdk();
+  }, []);
+
+  // Real-time clock ticking effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup on unmount
   }, []);
   useEffect(() => {
     const fetchData = async () => {
@@ -124,6 +134,53 @@ export default function Home() {
       timeZone: 'Asia/Jakarta'
     });
   };
+
+  const calculateTimeRemaining = (deadline: string) => {
+    const now = currentTime; // Use the state-managed current time
+    const deadlineDate = new Date(deadline);
+    const timeDiff = deadlineDate.getTime() - now.getTime();
+    
+    if (timeDiff <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0, percentage: 100, isExpired: true };
+    }
+    
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+    
+    // Calculate percentage based on total building period
+    const startDate = new Date();
+    const totalDuration = deadlineDate.getTime() - startDate.getTime();
+    const elapsed = startDate.getTime() - startDate.getTime();
+    const percentage = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+    
+    return { days, hours, minutes, seconds, percentage, isExpired: false };
+  };
+
+  const getProgressBarColor = (timeRemaining: ReturnType<typeof calculateTimeRemaining>) => {
+    if (timeRemaining.isExpired) return 'bg-red-500';
+    if (timeRemaining.days <= 1) return 'bg-red-500';
+    if (timeRemaining.days <= 3) return 'bg-orange-500';
+    if (timeRemaining.days <= 7) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const sortedWaveHacks = waveHacks.sort((a, b) => {
+    const now = new Date().getTime();
+    const deadlineA = new Date(a.activeWave.submissionDeadline).getTime();
+    const deadlineB = new Date(b.activeWave.submissionDeadline).getTime();
+    
+    const isExpiredA = deadlineA <= now;
+    const isExpiredB = deadlineB <= now;
+    
+    // Non-expired deadlines first, then expired deadlines
+    if (isExpiredA && !isExpiredB) return 1;
+    if (!isExpiredA && isExpiredB) return -1;
+    
+    // Within each group, sort by deadline (closest first)
+    return deadlineA - deadlineB;
+  });
 
   const fetchWaveHackDetail = async (id: string) => {
     setModalLoading(true);
@@ -200,11 +257,15 @@ export default function Home() {
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {waveHacks.map((hack) => (
-                  <div 
-                    key={hack.id} 
-                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-6 hover:shadow-lg transition-shadow hover:border-cyan-300 dark:hover:border-cyan-500"
-                  >
+                {sortedWaveHacks.map((hack) => {
+                  const timeRemaining = calculateTimeRemaining(hack.activeWave.submissionDeadline);
+                  const progressColor = getProgressBarColor(timeRemaining);
+                  
+                  return (
+                    <div 
+                      key={hack.id} 
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-6 hover:shadow-lg transition-shadow hover:border-cyan-300 dark:hover:border-cyan-500"
+                    >
                     {/* ID and Title */}
                     <div className="mb-4">
                       <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mb-1">
@@ -234,6 +295,88 @@ export default function Home() {
                           <span>{hack.judgingDays} days</span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Progress Bars */}
+                    <div className="mb-4 space-y-3">
+                      {/* Submission Deadline Progress Bar */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Submission Deadline
+                          </span>
+                          <span className={`text-sm font-medium ${
+                            timeRemaining.isExpired 
+                              ? 'text-red-600 dark:text-red-400' 
+                              : timeRemaining.days <= 1 
+                              ? 'text-red-600 dark:text-red-400'
+                              : timeRemaining.days <= 3
+                              ? 'text-orange-600 dark:text-orange-400'
+                              : 'text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {timeRemaining.isExpired 
+                              ? 'Expired' 
+                              : `${timeRemaining.days}d ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`
+                            }
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${progressColor}`}
+                            style={{
+                              width: timeRemaining.isExpired ? '100%' : `${Math.max(5, 100 - (timeRemaining.days * 3.33))}%`
+                            }}
+                          ></div>
+                        </div>
+                        {timeRemaining.isExpired && (
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            Submission deadline has passed
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Judging Deadline Progress Bar */}
+                      {(() => {
+                        const judgingTimeRemaining = calculateTimeRemaining(hack.activeWave.judgementDeadline);
+                        const judgingProgressColor = getProgressBarColor(judgingTimeRemaining);
+                        
+                        return (
+                          <div>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Judging Deadline
+                              </span>
+                              <span className={`text-sm font-medium ${
+                                judgingTimeRemaining.isExpired 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : judgingTimeRemaining.days <= 1 
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : judgingTimeRemaining.days <= 3
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : 'text-slate-700 dark:text-slate-300'
+                              }`}>
+                                {judgingTimeRemaining.isExpired 
+                                  ? 'Expired' 
+                                  : `${judgingTimeRemaining.days}d ${judgingTimeRemaining.hours}h ${judgingTimeRemaining.minutes}m ${judgingTimeRemaining.seconds}s`
+                                }
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all duration-300 ${judgingProgressColor} opacity-75`}
+                                style={{
+                                  width: judgingTimeRemaining.isExpired ? '100%' : `${Math.max(5, 100 - (judgingTimeRemaining.days * 3.33))}%`
+                                }}
+                              ></div>
+                            </div>
+                            {judgingTimeRemaining.isExpired && (
+                              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                Judging deadline has passed
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()} 
                     </div>
 
                     {/* Dates */}
@@ -284,8 +427,9 @@ export default function Home() {
                         View Details
                       </button>
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
