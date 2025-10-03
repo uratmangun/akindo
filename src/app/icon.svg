@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#0ea5e9"/>
+  
+  <!-- Wave pattern -->
+  <path d="M 0 64 Q 16 48 32 64 T 64 64 T 96 64 T 128 64 L 128 128 L 0 128 Z" fill="#0284c7" opacity="0.6"/>
+  <path d="M 0 80 Q 16 64 32 80 T 64 80 T 96 80 T 128 80 L 128 128 L 0 128 Z" fill="#0369a1" opacity="0.4"/>
+  
+  <!-- Tech/Code brackets -->
+  <path d="M 32 45 L 20 56 L 32 67" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 96 45 L 108 56 L 96 67" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Central wave accent -->
+  <path d="M 48 56 Q 56 48 64 56 T 80 56" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
+</svg>
+
