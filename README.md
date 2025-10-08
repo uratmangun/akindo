@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Akindo Wave Hacks Dashboard
+
+A Next.js dashboard for browsing active Akindo Wave Hacks, inspecting real-time timelines, and exploring judging details. The app also exposes a Model Context Protocol (MCP) endpoint so external tooling can connect to the same dataset.
+
+## Features
+
+- **Wave Hack listings** – Fetches active hacks from Akindo and surfaces core details such as status, prize pool, timelines, and token information.
+- **Live countdowns** – Displays submission and judging deadlines with color-coded progress bars and auto-updating timers.
+- **Detail modal** – Presents full hack descriptions, community links, and criteria with markdown rendering via `react-markdown` and `remark-gfm`.
+- **MCP endpoint helper** – Highlights the `<domain>/mcp` endpoint with a one-click copy action to integrate external MCP-compatible agents.
+
+## Tech Stack
+
+- [Next.js App Router](https://nextjs.org/docs/app) with client components
+- TypeScript & Tailwind CSS utility classes
+- `react-markdown` with GitHub-flavored markdown support
+- Akindo data fetched through internal API routes (`/api/akindo-data`, `/api/wave-hack/[id]`)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- [pnpm](https://pnpm.io/) (preferred package manager)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Running the app
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The development server defaults to [http://localhost:3000](http://localhost:3000). If you need to use a different port, append `--port <PORT>` to the command (for example, `pnpm dev --port 3100`).
 
-## Learn More
+### Available scripts
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev      # start the development server
+pnpm build    # build the production bundle
+pnpm start    # run the production server
+pnpm lint     # run Next.js linting
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Connecting via MCP
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The application hosts an MCP endpoint at:
 
-## Deploy on Vercel
+```
+<your-domain>/mcp
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+When running locally, this will typically be `http://localhost:3000/mcp` (or whichever port you configured while starting the dev server). Use this endpoint to register the data source with MCP-compatible tools.
+
+## Project Structure Highlights
+
+- `src/app/page.tsx` – Main dashboard page that renders the Wave Hacks grid, modal, and MCP helper.
+- `src/pages/api/akindo-data.ts` – Returns current Wave Hack listings (single page or paginated).
+- `src/pages/api/wave-hack/[id].ts` – Fetches detailed information for a specific hack.
+
+## Contributing
+
+1. Fork the repo and create a feature branch.
+2. Run `pnpm lint` before submitting changes.
+3. Open a pull request describing the update and any manual verification steps.
+
+## License
+
+This project is proprietary to the Akindo Wave Hacks team. Reach out to the maintainers for usage permissions.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
