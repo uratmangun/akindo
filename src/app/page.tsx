@@ -220,14 +220,14 @@ export default function Home() {
       console.log('API Response:', result); // Debug log
       
       if (result.success) {
-        console.log('Wave hack data:', result.data); // Debug log
+        console.log('Wave cute data:', result.data); // Debug log
         setSelectedWaveHack(result.data);
       } else {
-        setModalError(result.error || 'Failed to fetch wave hack details');
+        setModalError(result.error || 'Failed to fetch wave cute details');
       }
     } catch (err) {
       console.error('Fetch error:', err); // Debug log
-      setModalError('Error fetching wave hack details: ' + (err as Error).message);
+      setModalError('Error fetching wave cute details: ' + (err as Error).message);
     } finally {
       setModalLoading(false);
     }
@@ -248,7 +248,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100">
-            akindo wavehacks
+            akindo wavecute
           </h1>
         </header>
 
@@ -259,7 +259,7 @@ export default function Home() {
             </div>
             <div className="p-6 space-y-4">
               <p className="text-slate-700 dark:text-slate-300">
-                Connect your tooling to Wave Hacks data by pointing to your domain with the
+                Connect your tooling to Wave Cute data by pointing to your domain with the
                 <span className="font-semibold"> `/mcp`</span> suffix. Use the endpoint below to configure your MCP client.
               </p>
               <div className="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-4">
@@ -304,7 +304,7 @@ export default function Home() {
         {loading && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-600 mx-auto"></div>
-            <p className="mt-4 text-slate-600 dark:text-slate-400">Loading wave hacks data...</p>
+            <p className="mt-4 text-slate-600 dark:text-slate-400">Loading wave cute data...</p>
           </div>
         )}
 
@@ -322,14 +322,14 @@ export default function Home() {
 
         {!loading && !error && waveHacks.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-slate-600 dark:text-slate-400">No active wave hacks found.</p>
+            <p className="text-slate-600 dark:text-slate-400">No active wave cute found.</p>
           </div>
         )}
 
         {!loading && !error && waveHacks.length > 0 && (
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
             <div className="px-6 py-4 bg-cyan-600 dark:bg-cyan-700">
-              <h2 className="text-xl font-semibold text-white">Active Wave Hacks</h2>
+              <h2 className="text-xl font-semibold text-white">Active Wave Cute</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -525,7 +525,7 @@ export default function Home() {
               <div className="relative w-full max-w-4xl p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-800 shadow-xl rounded-lg z-10">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
-                    Wave Hack Details
+                    Wave Cute Details
                   </h3>
                   <button
                     onClick={closeModal}
@@ -558,10 +558,10 @@ export default function Home() {
 
                 {selectedWaveHack && !modalLoading && !modalError && (
                   <div className="space-y-6">
-                    {/* Wave Hack Information */}
+                    {/* Wave Cute Information */}
                     <div>
                       <h4 className="text-md font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                        Wave Hack Information
+                        Wave Cute Information
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
                         {/* Duration */}
