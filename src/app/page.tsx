@@ -67,6 +67,8 @@ export default function Home() {
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [origin, setOrigin] = useState('');
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     const initializeSdk = async () => {
       await sdk.actions.ready();
@@ -82,6 +84,31 @@ export default function Home() {
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+  const endpoint = origin ? `${origin}/mcp` : '<your-domain>/mcp';
+  useEffect(() => {
+    if (!copied) return;
+
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+  const handleCopyEndpoint = async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      console.warn('Clipboard API is not available in this environment.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(endpoint);
+      setCopied(true);
+    } catch (err) {
+      console.error('Failed to copy endpoint:', err);
+    }
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -224,6 +251,55 @@ export default function Home() {
             akindo wavehacks
           </h1>
         </header>
+
+        <section className="mb-8">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+            <div className="px-6 py-4 bg-cyan-600 dark:bg-cyan-700">
+              <h2 className="text-xl font-semibold text-white">Connect via MCP</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700 dark:text-slate-300">
+                Connect your tooling to Wave Hacks data by pointing to your domain with the
+                <span className="font-semibold"> `/mcp`</span> suffix. Use the endpoint below to configure your MCP client.
+              </p>
+              <div className="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                      Endpoint
+                    </div>
+                    <code className="block text-lg font-mono text-cyan-700 dark:text-cyan-300 break-all">
+                      {endpoint}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCopyEndpoint}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+                    >
+                      Copy
+                    </button>
+                    <span
+                      className={`text-sm font-medium ${
+                        copied
+                          ? 'text-green-600 dark:text-green-300'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                      aria-live="polite"
+                    >
+                      {copied ? 'Copied!' : 'Ready to copy'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Example: if your deployment lives at <span className="font-medium text-slate-800 dark:text-slate-200">wavehacks.example.com</span>, connect to
+                <span className="font-medium"> wavehacks.example.com/mcp</span>.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {loading && (
           <div className="text-center py-8">
