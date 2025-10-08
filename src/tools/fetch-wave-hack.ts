@@ -4,22 +4,22 @@ import ky from "ky";
 
 // Define the schema for tool parameters
 export const schema = {
-  id: z.string().describe("The Wave Hack ID to fetch details for"),
+  id: z.string().describe("The Wave Cute ID to fetch details for"),
 };
 
 // Define tool metadata
 export const metadata: ToolMetadata = {
-  name: "fetch_wave_hack",
-  description: "Fetch detailed information about a specific Wave Hack by ID from Akindo API",
+  name: "fetch_wave_cute",
+  description: "Fetch detailed information about a specific Wave Cute by ID from Akindo API",
   annotations: {
-    title: "Fetch Wave Hack Details",
+    title: "Fetch Wave Cute Details",
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
   },
 };
 
-interface WaveHackDetailResponse {
+interface WaveCuteDetailResponse {
   id: string;
   title: string;
   description: string;
@@ -38,7 +38,7 @@ interface WaveHackDetailResponse {
 }
 
 // Tool implementation
-export default async function fetchWaveHack({
+export default async function fetchWaveCute({
   id,
 }: InferSchema<typeof schema>) {
   try {
@@ -50,7 +50,7 @@ export default async function fetchWaveHack({
             text: JSON.stringify(
               {
                 success: false,
-                error: "Wave hack ID is required",
+                error: "Wave cute id is required",
               },
               null,
               2
@@ -71,13 +71,13 @@ export default async function fetchWaveHack({
       },
     });
 
-    // Fetch wave hack details from Akindo API
-    const waveHackUrl = `https://api.akindo.io/public/wave-hacks/${id}`;
+    // Fetch wave cute details from Akindo API
+    const waveCuteUrl = `https://api.akindo.io/public/wave-hacks/${id}`;
 
-    console.log(`Fetching wave hack details for ID: ${id}`);
-    console.log(`URL: ${waveHackUrl}`);
+    console.log(`Fetching wave cute details for ID: ${id}`);
+    console.log(`URL: ${waveCuteUrl}`);
 
-    const response = await api.get(waveHackUrl).json<WaveHackDetailResponse>();
+    const response = await api.get(waveCuteUrl).json<WaveCuteDetailResponse>();
 
     console.log("API response received:", {
       id: response.id,
@@ -110,7 +110,7 @@ export default async function fetchWaveHack({
 
       // Check if it's a network/HTTP error
       if (error.message.includes("404")) {
-        errorMessage = "Wave hack not found";
+        errorMessage = "Wave cute not found";
       } else if (error.message.includes("timeout")) {
         errorMessage = "Request timeout - the API is taking too long to respond";
       } else if (error.message.includes("network")) {
@@ -118,7 +118,7 @@ export default async function fetchWaveHack({
       }
     }
 
-    console.error("Error fetching wave hack details:", error);
+    console.error("Error fetching wave cute details:", error);
 
     return {
       content: [
@@ -132,7 +132,7 @@ export default async function fetchWaveHack({
               debug: {
                 originalError:
                   error instanceof Error ? error.message : "Unknown error",
-                waveHackId: id,
+                waveCuteId: id,
               },
             },
             null,

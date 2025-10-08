@@ -19,9 +19,9 @@ export const schema = {
 // Define tool metadata
 export const metadata: ToolMetadata = {
   name: "fetch_akindo_data",
-  description: "Fetch Wave Hacks data from Akindo API with pagination support",
+  description: "Fetch Wave Cute data from Akindo API with pagination support",
   annotations: {
-    title: "Fetch Akindo Wave Hacks Data",
+    title: "Fetch Akindo Wave Cute Data",
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
@@ -102,8 +102,8 @@ class AkindoDataFetcher {
   }
 
   generateDataSummary(data: any[]): any {
-    const activeWaveHacks = data.filter((item) => item.activeWave);
-    const publicHacks = data.filter((item) => item.isPublic);
+    const activeWaveCutes = data.filter((item) => item.activeWave);
+    const publicCutes = data.filter((item) => item.isPublic);
     const uniqueTokens = [
       ...new Set(
         data.map((item) => item.grantDenomination?.name).filter(Boolean)
@@ -112,8 +112,8 @@ class AkindoDataFetcher {
 
     return {
       totalItems: data.length,
-      activeWaveHacks: activeWaveHacks.length,
-      publicHacks: publicHacks.length,
+      activeWaveCutes: activeWaveCutes.length,
+      publicCutes: publicCutes.length,
       uniqueTokens: uniqueTokens.length,
       tokens: uniqueTokens,
       averageBuildingDays:

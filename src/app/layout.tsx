@@ -43,8 +43,8 @@ const farcasterConfig = getFarcasterConfig();
 
 export const metadata: Metadata = {
   title: {
-    default: 'akindo-wavehacks',
-    template: '%s | akindo-wavehacks',
+    default: 'akindo-wavecute',
+    template: '%s | akindo-wavecute',
   },
   description: 'A Farcaster mini app built with Next.js and deployed on Cloudflare Pages',
   keywords: ['Farcaster', 'Mini App', 'Web3', 'Social', 'Decentralized'],
@@ -58,16 +58,16 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'akindo-wavehacks',
+    title: 'akindo-wavecute',
     description: 'A Farcaster mini app built with Next.js',
     url: '/',
-    siteName: 'akindo-wavehacks',
+    siteName: 'akindo-wavecute',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'akindo-wavehacks',
+    title: 'akindo-wavecute',
     description: 'A Farcaster mini app built with Next.js',
   },
   robots: {
