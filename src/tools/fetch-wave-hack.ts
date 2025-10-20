@@ -4,13 +4,17 @@ import ky from "ky";
 
 // Define the schema for tool parameters
 export const schema = {
-  id: z.string().describe("The Wave Cute ID to fetch details for"),
+  id: z
+    .string()
+    .min(1, "Wave Cute ID is required")
+    .describe("The Wave Cute ID to fetch details for"),
 };
 
 // Define tool metadata
 export const metadata: ToolMetadata = {
   name: "fetch_wave_cute",
-  description: "Fetch detailed information about a specific Wave Cute by ID from Akindo API",
+  description:
+    "Fetch detailed information about a specific Wave Cute by ID from the Akindo API",
   annotations: {
     title: "Fetch Wave Cute Details",
     readOnlyHint: true,
@@ -41,27 +45,27 @@ interface WaveCuteDetailResponse {
 export default async function fetchWaveCute({
   id,
 }: InferSchema<typeof schema>) {
-  try {
-    if (!id) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                success: false,
-                error: "Wave cute id is required",
-              },
-              null,
-              2
-            ),
-          },
-        ],
-        isError: true,
-      };
-    }
+  if (!id) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              success: false,
+              error: "Wave Cute ID is required",
+              timestamp: new Date().toISOString(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
 
-    // Create ky instance with retry logic
+  try {
     const api = ky.create({
       timeout: 30000,
       retry: {
@@ -71,9 +75,7 @@ export default async function fetchWaveCute({
       },
     });
 
-    // Fetch wave cute details from Akindo API
     const waveCuteUrl = `https://api.akindo.io/public/wave-hacks/${id}`;
-
     console.log(`Fetching wave cute details for ID: ${id}`);
     console.log(`URL: ${waveCuteUrl}`);
 
@@ -102,23 +104,19 @@ export default async function fetchWaveCute({
       ],
     };
   } catch (error) {
-    // Handle different types of errors
     let errorMessage = "Unknown error occurred";
 
     if (error instanceof Error) {
       errorMessage = error.message;
 
-      // Check if it's a network/HTTP error
       if (error.message.includes("404")) {
-        errorMessage = "Wave cute not found";
+        errorMessage = "Wave Cute not found";
       } else if (error.message.includes("timeout")) {
         errorMessage = "Request timeout - the API is taking too long to respond";
       } else if (error.message.includes("network")) {
         errorMessage = "Network error - unable to reach the API";
       }
     }
-
-    console.error("Error fetching wave cute details:", error);
 
     return {
       content: [
@@ -130,8 +128,6 @@ export default async function fetchWaveCute({
               error: errorMessage,
               timestamp: new Date().toISOString(),
               debug: {
-                originalError:
-                  error instanceof Error ? error.message : "Unknown error",
                 waveCuteId: id,
               },
             },
@@ -144,4 +140,3 @@ export default async function fetchWaveCute({
     };
   }
 }
-

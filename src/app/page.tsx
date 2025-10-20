@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { sdk } from '@farcaster/miniapp-sdk'
+import { useCallTool } from '@/app/hooks/use-call-tool';
 interface Token {
   name: string;
   address: string;
@@ -69,6 +70,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
+  const callTool = useCallTool();
   useEffect(() => {
     const initializeSdk = async () => {
       await sdk.actions.ready();
@@ -214,19 +216,34 @@ export default function Home() {
     setModalError(null);
     setModalOpen(true); // Open modal immediately to show loading state
     try {
+      const toolResponse = await callTool('fetch_wave_cute', { id });
+
+      if (toolResponse?.result) {
+        const parsed = JSON.parse(toolResponse.result);
+
+        console.log('Tool Response:', parsed);
+
+        if (parsed.success) {
+          setSelectedWaveHack(parsed.data);
+          return;
+        }
+
+        setModalError(parsed.error || 'Failed to fetch wave cute details from tool');
+        return;
+      }
+
       const response = await fetch(`/api/wave-hack/${id}`);
       const result = await response.json();
-      
-      console.log('API Response:', result); // Debug log
-      
+
+      console.log('API Response:', result);
+
       if (result.success) {
-        console.log('Wave cute data:', result.data); // Debug log
         setSelectedWaveHack(result.data);
       } else {
         setModalError(result.error || 'Failed to fetch wave cute details');
       }
     } catch (err) {
-      console.error('Fetch error:', err); // Debug log
+      console.error('Fetch error:', err);
       setModalError('Error fetching wave cute details: ' + (err as Error).message);
     } finally {
       setModalLoading(false);
