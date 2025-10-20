@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -143,30 +143,81 @@ jobs:
           echo "Generated worker name: $WORKER_NAME"
           echo "worker_name=$WORKER_NAME" >> $GITHUB_OUTPUT
           echo "worker_domain=https://${WORKER_NAME}.uratmangun.workers.dev" >> $GITHUB_OUTPUT
+          echo "worker_host=${WORKER_NAME}.uratmangun.workers.dev" >> $GITHUB_OUTPUT
           echo "preview_domain=https://${WORKER_NAME}-preview.uratmangun.workers.dev" >> $GITHUB_OUTPUT
 
-      - name: Set VERCEL_PROJECT_PRODUCTION_URL secret for production worker
+      - name: Ensure Cloudflare Worker project exists
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
         env:
-          TARGET_VERCEL_URL: ${{ steps.generate-worker-name.outputs.worker_name }}.uratmangun.workers.dev
+          WORKER_NAME: ${{ steps.generate-worker-name.outputs.worker_name }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          SECRET_NAME="VERCEL_PROJECT_PRODUCTION_URL"
-          API_URL="https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/scripts/${{ steps.generate-worker-name.outputs.worker_name }}/secrets"
-          AUTH_HEADER="Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}"
-          
-          # Check if secret exists
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$API_URL/$SECRET_NAME")
-          
-          if [ "$HTTP_CODE" -eq 200 ]; then
-            echo "Secret exists, deleting..."
-            curl -X DELETE "$API_URL/$SECRET_NAME" -H "$AUTH_HEADER"
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}"
+          AUTH_HEADER="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$API_URL")
+
+          if [ "$HTTP_CODE" -eq 404 ]; then
+            echo "Worker ${WORKER_NAME} not found. Creating placeholder Worker to bootstrap secrets..."
+            cat <<'EOF' > placeholder-worker.js
+            addEventListener('fetch', event => {
+              event.respondWith(new Response('Deployment placeholder', { status: 200 }));
+            });
+              EOF
+            CREATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$API_URL" \
+              -H "$AUTH_HEADER" \
+              -H "Content-Type: application/javascript" \
+              --data-binary "@placeholder-worker.js")
+
+            if [ "$CREATE_CODE" -ge 200 ] && [ "$CREATE_CODE" -lt 300 ]; then
+              echo "Placeholder Worker created (HTTP ${CREATE_CODE})."
+            else
+              echo "Failed to create placeholder Worker (HTTP ${CREATE_CODE})."
+              exit 1
+            fi
+          else
+            echo "Worker ${WORKER_NAME} already exists (HTTP ${HTTP_CODE})."
           fi
-          
-          echo "Creating/updating secret..."
-          curl -X PUT "$API_URL" \
-            -H "$AUTH_HEADER" \
-            -H "Content-Type: application/json" \
-            -d "{\"name\": \"$SECRET_NAME\", \"text\": \"$TARGET_VERCEL_URL\", \"type\": \"secret_text\"}"
+
+      - name: Set Cloudflare production secrets
+        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+        env:
+          WORKER_NAME: ${{ steps.generate-worker-name.outputs.worker_name }}
+          WORKER_HOST: ${{ steps.generate-worker-name.outputs.worker_host }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}/secrets"
+          AUTH_HEADER="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+
+          set_secret() {
+            local SECRET_NAME="$1"
+            local SECRET_VALUE="$2"
+            local SECRET_ENDPOINT="${API_URL}/${SECRET_NAME}"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$SECRET_ENDPOINT")
+
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              echo "Secret ${SECRET_NAME} exists, deleting..."
+              curl -s -X DELETE "$SECRET_ENDPOINT" -H "$AUTH_HEADER" > /dev/null
+            fi
+
+            echo "Creating/updating secret ${SECRET_NAME}..."
+            CREATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$API_URL" \
+              -H "$AUTH_HEADER" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\": \"${SECRET_NAME}\", \"text\": \"${SECRET_VALUE}\", \"type\": \"secret_text\"}")
+
+            if [ "$CREATE_CODE" -lt 200 ] || [ "$CREATE_CODE" -ge 300 ]; then
+              echo "Failed to create secret ${SECRET_NAME} (HTTP ${CREATE_CODE})."
+              exit 1
+            fi
+          }
+
+          set_secret "VERCEL_URL" "${WORKER_HOST}"
+          set_secret "VERCEL_PROJECT_PRODUCTION_URL" "${WORKER_HOST}"
+          set_secret "VERCEL_ENV" "production"
 
       - name: Deploy to Cloudflare Workers (Production)
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
@@ -179,7 +230,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-       
       - name: Update repository homepage URL
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
         uses: actions/github-script@v7
@@ -202,5 +252,3 @@ jobs:
               console.error('Failed to update repository homepage URL:', error);
               // Don't fail the workflow if homepage update fails
             }
-
-  
