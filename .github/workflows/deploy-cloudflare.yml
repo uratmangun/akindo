@@ -160,11 +160,7 @@ jobs:
 
           if [ "$HTTP_CODE" -eq 404 ]; then
             echo "Worker ${WORKER_NAME} not found. Creating placeholder Worker to bootstrap secrets..."
-            cat <<'EOF' > placeholder-worker.js
-            addEventListener('fetch', event => {
-              event.respondWith(new Response('Deployment placeholder', { status: 200 }));
-            });
-            EOF
+            printf "addEventListener('fetch', event => {\n  event.respondWith(new Response('Deployment placeholder', { status: 200 }));\n});\n" > placeholder-worker.js
             CREATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$API_URL" \
               -H "$AUTH_HEADER" \
               -H "Content-Type: application/javascript" \
