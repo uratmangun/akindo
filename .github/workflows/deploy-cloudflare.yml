@@ -1,103 +1,207 @@
-name: "☁️ Deploy to Cloudflare Workers"
+name: Deploy to Cloudflare Pages
 
 on:
   push:
     branches:
       - main
       - master
+  pull_request:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
-  deploy-worker:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
 
     steps:
-      - name: "📥 Checkout code"
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: "🧰 Setup Node.js"
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: "🛠️ Setup Bun"
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: "📦 Install dependencies"
-        run: |
-          bun install --frozen-lockfile
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: "🏗️ Build project"
-        run: bun run build
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run type-check
+
+      - name: Build for Cloudflare Workers
+        run: bun run workers:build
         env:
           NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: "🛠️ Install Wrangler CLI"
-        run: bun add --global wrangler@latest
-
-      - name: "ℹ️ Skip Cloudflare deploy"
-        if: ${{ hashFiles('wrangler.toml') == '' }}
-        run: |
-          echo "::notice::Skipping Cloudflare deployment because wrangler.toml was not found in the repository root."
-
-      - name: "☁️ Deploy Worker"
-        id: deploy
-        if: ${{ hashFiles('wrangler.toml') != '' }}
+      - name: Find existing Cloudflare Workers and Pages projects
+        id: find-existing
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          WRANGLER_ENVIRONMENT: ${{ vars.CLOUDFLARE_ENVIRONMENT }}
         run: |
-          if [ ! -f wrangler.toml ]; then
-            echo "::error::wrangler.toml not found at repository root. Add the file before running this workflow."
-            exit 1
-          fi
-
-          if [ -n "$WRANGLER_ENVIRONMENT" ]; then
-            DEPLOYMENT_OUTPUT=$(wrangler deploy --env "$WRANGLER_ENVIRONMENT" 2>&1)
+          # Get repository name for pattern matching
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          REPO_PATTERN="${REPO_NAME}-"
+          
+          echo "========================================="
+          echo "Looking for existing Workers and Pages"
+          echo "Pattern: ${REPO_PATTERN}*"
+          echo "========================================="
+          
+          # Step 1: Find matching Workers
+          echo ""
+          echo "Step 1: Checking for existing Workers to reuse..."
+          
+          # List all Workers
+          WORKERS=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json")
+          
+          # Extract worker names that match the pattern
+          MATCHING_WORKERS=$(echo "$WORKERS" | jq -r ".result[] | select(.id | startswith(\"${REPO_PATTERN}\")) | .id" || true)
+          
+          if [ -n "$MATCHING_WORKERS" ]; then
+            echo "Found matching Workers:"
+            echo "$MATCHING_WORKERS"
+            EXISTING_WORKER=$(echo "$MATCHING_WORKERS" | head -n1)
+            if [ -n "$EXISTING_WORKER" ]; then
+              echo "Reusing existing Worker: $EXISTING_WORKER"
+              echo "existing_worker=$EXISTING_WORKER" >> $GITHUB_OUTPUT
+            fi
           else
-            DEPLOYMENT_OUTPUT=$(wrangler deploy 2>&1)
+            echo "No existing Workers found matching pattern: ${REPO_PATTERN}*"
           fi
-
-          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -o "https://[^ ]*\.workers\.dev" | head -1)
-
-          if [ -n "$DEPLOYMENT_URL" ]; then
-            echo "✅ Deployment URL: $DEPLOYMENT_URL"
-            echo "deployment_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
+          
+          # Step 2: Find matching Pages projects
+          echo ""
+          echo "Step 2: Checking for existing Pages projects to reuse..."
+          
+          # List all Cloudflare Pages projects
+          PROJECTS=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json")
+          
+          # Extract project names that match the pattern
+          MATCHING_PROJECTS=$(echo "$PROJECTS" | jq -r ".result[] | select(.name | startswith(\"${REPO_PATTERN}\")) | .name" || true)
+          
+          if [ -n "$MATCHING_PROJECTS" ]; then
+            echo "Found matching Pages projects:"
+            echo "$MATCHING_PROJECTS"
+            EXISTING_PROJECT=$(echo "$MATCHING_PROJECTS" | head -n1)
+            if [ -n "$EXISTING_PROJECT" ]; then
+              echo "Reusing existing Pages project: $EXISTING_PROJECT"
+              echo "existing_project=$EXISTING_PROJECT" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "⚠️ Could not extract deployment URL from Wrangler output"
-            echo "Full output:"
-            echo "$DEPLOYMENT_OUTPUT"
+            echo "No existing Pages projects found matching pattern: ${REPO_PATTERN}*"
           fi
+          
+          echo ""
+          echo "========================================="
+          echo "Lookup complete"
+          echo "========================================="
 
-      - name: "🏷️ Update repository homepage URL"
-        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && hashFiles('wrangler.toml') != '' }}
+      - name: Determine worker name for deployment
+        id: generate-worker-name
+        run: |
+          # Get repository name
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          
+          EXISTING_WORKER="${{ steps.find-existing.outputs.existing_worker }}"
+          
+          if [ -n "$EXISTING_WORKER" ]; then
+            WORKER_NAME="$EXISTING_WORKER"
+            echo "Reusing existing Worker: $WORKER_NAME"
+          else
+            # Generate random alphanumeric string
+            RANDOM_STRING=$(openssl rand -hex 8 | tr -d '\n')
+            
+            # Combine repository name with random string
+            WORKER_NAME="${REPO_NAME}-${RANDOM_STRING}"
+            
+            # Ensure minimum length of 26 characters
+            while [ ${#WORKER_NAME} -lt 26 ]; do
+              EXTRA_CHARS=$(openssl rand -hex 2 | tr -d '\n')
+              WORKER_NAME="${WORKER_NAME}${EXTRA_CHARS}"
+            done
+            
+            # Ensure worker name is valid (lowercase, alphanumeric, hyphens only)
+            WORKER_NAME=$(echo "$WORKER_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          fi
+          
+          echo "Generated worker name: $WORKER_NAME"
+          echo "worker_name=$WORKER_NAME" >> $GITHUB_OUTPUT
+
+      # Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare Workers (Production)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          # Update wrangler.toml with the generated worker name
+          sed -i "s/^name = .*/name = \"${{ steps.generate-worker-name.outputs.worker_name }}\"/" wrangler.toml
+          # Deploy using opennextjs-cloudflare
+          bun run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Workers (Preview)
+        if: github.event_name == 'pull_request'
+        run: |
+          # Update wrangler.toml with the generated worker name and preview suffix
+          sed -i "s/^name = .*/name = \"${{ steps.generate-worker-name.outputs.worker_name }}-preview\"/" wrangler.toml
+          # Deploy using opennextjs-cloudflare
+          bun run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Update repository homepage URL
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
-            const deploymentUrl = '${{ steps.deploy.outputs.deployment_url }}';
-
-            if (!deploymentUrl) {
-              console.log('No deployment URL found, skipping homepage update');
-              return;
-            }
-
-            console.log(`Updating repository homepage to: ${deploymentUrl}`);
-
+            const workerName = '${{ steps.generate-worker-name.outputs.worker_name }}';
+            const homepageUrl = `https://${workerName}.uratmangun.workers.dev`;
+            
+            console.log(`Updating repository homepage to: ${homepageUrl}`);
+            
             try {
               await github.rest.repos.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                homepage: deploymentUrl
+                homepage: homepageUrl
               });
               console.log('Successfully updated repository homepage URL');
             } catch (error) {
               console.error('Failed to update repository homepage URL:', error);
               // Don't fail the workflow if homepage update fails
             }
+
+      - name: Comment deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const deployment = `https://${{ steps.generate-worker-name.outputs.worker_name }}-preview.workers.dev`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Preview deployment ready!\n\n🔗 ${deployment}`
+            })
