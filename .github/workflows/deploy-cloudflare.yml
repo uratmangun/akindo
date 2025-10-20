@@ -190,23 +190,24 @@ jobs:
           set_secret() {
             local SECRET_NAME="$1"
             local SECRET_VALUE="$2"
-            local SECRET_ENDPOINT="${API_URL}/${SECRET_NAME}"
-
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$SECRET_ENDPOINT")
-
-            if [ "$HTTP_CODE" -eq 200 ]; then
-              echo "Secret ${SECRET_NAME} exists, deleting..."
-              curl -s -X DELETE "$SECRET_ENDPOINT" -H "$AUTH_HEADER" > /dev/null
-            fi
 
             echo "Creating/updating secret ${SECRET_NAME}..."
-            CREATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$API_URL" \
+            
+            # Use PUT to base secrets URL - this will create or update the secret
+            RESPONSE=$(curl -s -X PUT "$API_URL" \
               -H "$AUTH_HEADER" \
               -H "Content-Type: application/json" \
               -d "{\"name\": \"${SECRET_NAME}\", \"text\": \"${SECRET_VALUE}\", \"type\": \"secret_text\"}")
-
-            if [ "$CREATE_CODE" -lt 200 ] || [ "$CREATE_CODE" -ge 300 ]; then
-              echo "Failed to create secret ${SECRET_NAME} (HTTP ${CREATE_CODE})."
+            
+            # Check if the response indicates success
+            SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+            
+            if [ "$SUCCESS" = "true" ]; then
+              echo "✓ Successfully set secret ${SECRET_NAME}"
+            else
+              ERROR_MSG=$(echo "$RESPONSE" | jq -r '.errors[0].message // "Unknown error"')
+              echo "Failed to set secret ${SECRET_NAME}: ${ERROR_MSG}"
+              echo "Full response: $RESPONSE"
               exit 1
             fi
           }
