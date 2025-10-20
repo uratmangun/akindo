@@ -1,0 +1,7 @@
+name = "akindo-wavehacks"
+main = ".vercel/output/static/_worker.js"
+compatibility_date = "2025-10-20"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".vercel/output/static"
