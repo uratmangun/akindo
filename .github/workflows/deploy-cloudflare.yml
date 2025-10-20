@@ -184,37 +184,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          API_URL="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}/secrets"
-          AUTH_HEADER="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
-
-          set_secret() {
-            local SECRET_NAME="$1"
-            local SECRET_VALUE="$2"
-
-            echo "Creating/updating secret ${SECRET_NAME}..."
-            
-            # Use PUT to base secrets URL - this will create or update the secret
-            RESPONSE=$(curl -s -X PUT "$API_URL" \
-              -H "$AUTH_HEADER" \
-              -H "Content-Type: application/json" \
-              -d "{\"name\": \"${SECRET_NAME}\", \"text\": \"${SECRET_VALUE}\", \"type\": \"secret_text\"}")
-            
-            # Check if the response indicates success
-            SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
-            
-            if [ "$SUCCESS" = "true" ]; then
-              echo "✓ Successfully set secret ${SECRET_NAME}"
-            else
-              ERROR_MSG=$(echo "$RESPONSE" | jq -r '.errors[0].message // "Unknown error"')
-              echo "Failed to set secret ${SECRET_NAME}: ${ERROR_MSG}"
-              echo "Full response: $RESPONSE"
-              exit 1
-            fi
-          }
-
-          set_secret "VERCEL_URL" "${WORKER_HOST}"
-          set_secret "VERCEL_PROJECT_PRODUCTION_URL" "${WORKER_HOST}"
-          set_secret "VERCEL_ENV" "production"
+          # Update wrangler.toml with the generated worker name for secret operations
+          sed -i "s/^name = .*/name = \"${WORKER_NAME}\"/" wrangler.toml
+          
+          echo "Setting secrets using wrangler CLI..."
+          echo "Worker: ${WORKER_NAME}"
+          
+          # Use wrangler secret put which handles create/update automatically
+          echo "${WORKER_HOST}" | npx wrangler secret put VERCEL_URL
+          echo "${WORKER_HOST}" | npx wrangler secret put VERCEL_PROJECT_PRODUCTION_URL
+          echo "production" | npx wrangler secret put VERCEL_ENV
+          
+          echo "✓ All secrets set successfully"
 
       - name: Deploy to Cloudflare Workers (Production)
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
