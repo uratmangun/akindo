@@ -4,9 +4,9 @@ This project follows specific guidelines for AI coding agents to ensure consiste
 
 ## Setup Commands
 
-- Install dependencies: `pnpm install`
-- Start development server: `pnpm dev`
-- Run tests: `pnpm test`
+- Install dependencies: `bun install`
+- Start development server: `bun dev`
+- Run tests: `bun test`
 
 ## Development Server Policy
 
@@ -48,33 +48,33 @@ This project follows specific guidelines for AI coding agents to ensure consiste
 
 ## Node.js Package Manager Standards
 
-**MANDATORY**: Use `pnpm` as the primary package manager, with `yarn` as fallback only if pnpm doesn't exist or encounters errors. Never use `npm` or `bun`.
+**MANDATORY**: Use `bun` as the primary package manager, with `pnpm` as fallback only if bun doesn't exist or encounters errors. Never use `npm` or `yarn`.
 
 ### Preferred Order
-1. **pnpm** - Efficient disk usage, strict dependency resolution, fast performance
-2. **yarn** - Fallback option when pnpm is unavailable or fails
+1. **bun** - Fast performance, modern JavaScript runtime
+2. **pnpm** - Efficient disk usage, strict dependency resolution
 
 ### Installation Commands
 
 ```bash
-# Using pnpm (preferred)
+# Using bun (preferred)
+bun install
+bun add <package>
+bun remove <package>
+bun run <script>
+
+# Using pnpm (fallback only)
 pnpm install
 pnpm add <package>
 pnpm remove <package>
 pnpm run <script>
-
-# Using yarn (fallback only)
-yarn install
-yarn add <package>
-yarn remove <package>
-yarn run <script>
 ```
 
 ### Script Execution
 
 Always use the detected package manager for running scripts:
-- `pnpm dev` (preferred)
-- `yarn dev` (fallback only)
+- `bun dev` (preferred)
+- `pnpm dev` (fallback only)
 
 ## UI Color Palette Preference
 

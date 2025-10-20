@@ -62,6 +62,14 @@ When running locally, this will typically be `http://localhost:3000/mcp` (or whi
 - `src/pages/api/akindo-data.ts` – Returns current Wave Hack listings (single page or paginated).
 - `src/pages/api/wave-hack/[id].ts` – Fetches detailed information for a specific hack.
 
+## Cloudflare environment setup
+
+- The `baseURL` helper (`src/config/baseUrl.ts:1`) expects the Vercel-style variables `VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL`, and `VERCEL_URL` so that `next.config.ts:4` can set `assetPrefix` correctly.
+- Use the helper script to populate these values in Cloudflare via Wrangler: `fish scripts/configure-cloudflare-base-url.fish <production-domain> [environment]`. Example: `fish scripts/configure-cloudflare-base-url.fish app.example.com production`.
+- Wrangler will prompt before overwriting existing secrets—reply with `y` to confirm. The script pipes the values so you do not need to type them manually.
+- For preview or staging environments, rerun the script with a different Worker environment name (for example, `fish scripts/configure-cloudflare-base-url.fish preview.example.workers.dev preview`). The script will switch to `VERCEL_BRANCH_URL` when the environment is not `production`.
+- After updating the secrets, redeploy with your usual workflow (`pnpm run deploy`) so the new asset prefix is embedded in the build.
+
 ## Contributing
 
 1. Fork the repo and create a feature branch.
