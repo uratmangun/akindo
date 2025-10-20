@@ -14,10 +14,14 @@ export const schema = {
     .positive()
     .optional()
     .describe("Specific page number to fetch (only used when mode is 'page')"),
+  activeOnly: z
+    .boolean()
+    .default(true)
+    .describe("Filter to only show items with activeWave set to true"),
 };
 
 // Define tool metadata
-export const metadata: ToolMetadata = {
+export const metadata = {
   name: "fetch_akindo_data",
   description: "Fetch Wave Cute data from Akindo API with pagination support",
   annotations: {
@@ -26,7 +30,7 @@ export const metadata: ToolMetadata = {
     destructiveHint: false,
     idempotentHint: true,
   },
-};
+} as ToolMetadata;
 
 interface AkindoApiResponse {
   items: any[];
@@ -130,6 +134,7 @@ class AkindoDataFetcher {
 export default async function fetchAkindoData({
   mode,
   page,
+  activeOnly,
 }: InferSchema<typeof schema>) {
   try {
     const fetcher = new AkindoDataFetcher();
@@ -141,27 +146,50 @@ export default async function fetchAkindoData({
       // Fetch specific page
       const response = await fetcher.fetchPage(page);
       data = response.items;
+      
+      // Filter for active waves if requested
+      if (activeOnly) {
+        data = data.filter((item: any) => item && item.activeWave);
+      }
+      
       summary = {
         page: page,
         totalPages: response.meta.totalPages,
         totalItems: response.meta.totalItems,
         itemsOnPage: response.items.length,
+        filteredItems: data.length,
+        activeOnly,
       };
     } else if (mode === "single") {
       // Fetch single page (first page only)
       const response = await fetcher.fetchPage(1);
       data = response.items;
+      
+      // Filter for active waves if requested
+      if (activeOnly) {
+        data = data.filter((item: any) => item && item.activeWave);
+      }
+      
       summary = {
         page: 1,
         totalPages: response.meta.totalPages,
         totalItems: response.meta.totalItems,
         itemsOnPage: response.items.length,
-        dataSummary: fetcher.generateDataSummary(response.items),
+        filteredItems: data.length,
+        activeOnly,
+        dataSummary: fetcher.generateDataSummary(data),
       };
     } else {
       // Fetch all pages
       data = await fetcher.fetchAllPages();
+      
+      // Filter for active waves if requested
+      if (activeOnly) {
+        data = data.filter((item: any) => item && item.activeWave);
+      }
+      
       summary = fetcher.generateDataSummary(data);
+      summary.activeOnly = activeOnly;
     }
 
     const result = {
