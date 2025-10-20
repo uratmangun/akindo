@@ -145,15 +145,28 @@ jobs:
           echo "worker_domain=https://${WORKER_NAME}.uratmangun.workers.dev" >> $GITHUB_OUTPUT
           echo "preview_domain=https://${WORKER_NAME}-preview.uratmangun.workers.dev" >> $GITHUB_OUTPUT
 
-      - name: Set VERCEL_URL secret for production worker
+      - name: Set VERCEL_PROJECT_PRODUCTION_URL secret for production worker
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
         env:
-          TARGET_VERCEL_URL: ${{ steps.generate-worker-name.outputs.worker_domain }}
+          TARGET_VERCEL_URL: ${{ steps.generate-worker-name.outputs.worker_name }}.uratmangun.workers.dev
         run: |
-          curl -X PUT "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/scripts/${{ steps.generate-worker-name.outputs.worker_name }}/secrets" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          SECRET_NAME="VERCEL_PROJECT_PRODUCTION_URL"
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/scripts/${{ steps.generate-worker-name.outputs.worker_name }}/secrets"
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          
+          # Check if secret exists
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "$AUTH_HEADER" "$API_URL/$SECRET_NAME")
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "Secret exists, deleting..."
+            curl -X DELETE "$API_URL/$SECRET_NAME" -H "$AUTH_HEADER"
+          fi
+          
+          echo "Creating/updating secret..."
+          curl -X PUT "$API_URL" \
+            -H "$AUTH_HEADER" \
             -H "Content-Type: application/json" \
-            -d "{\"name\": \"VERCEL_URL\", \"text\": \"${TARGET_VERCEL_URL}\", \"type\": \"secret_text\"}"
+            -d "{\"name\": \"$SECRET_NAME\", \"text\": \"$TARGET_VERCEL_URL\", \"type\": \"secret_text\"}"
 
       - name: Deploy to Cloudflare Workers (Production)
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
