@@ -187,6 +187,10 @@ jobs:
           # Update wrangler.toml with the generated worker name for secret operations
           sed -i "s/^name = .*/name = \"${WORKER_NAME}\"/" wrangler.toml
           
+          echo "Cleaning up existing worker to avoid binding conflicts..."
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${WORKER_NAME}"
+          curl -s -X DELETE "$API_URL" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" > /dev/null || true
+          
           echo "Setting secrets using wrangler CLI..."
           echo "Worker: ${WORKER_NAME}"
           
