@@ -7,6 +7,7 @@ import {
   useDisplayMode,
   useRequestDisplayMode,
   useIsChatGptApp,
+  useSendMessage,
 } from "@/app/hooks";
 import { useCallTool } from "@/app/hooks/use-call-tool";
 
@@ -53,6 +54,7 @@ export default function ViewWaveHacksPage() {
   const requestDisplayMode = useRequestDisplayMode();
   const isChatGptApp = useIsChatGptApp();
   const callTool = useCallTool();
+  const sendMessage = useSendMessage();
 
   const [waveHacksData, setWaveHacksData] = useState<WaveHacksData | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -390,7 +392,7 @@ export default function ViewWaveHacksPage() {
                       </div>
 
                       {/* Status */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
                           hack.isPublic 
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
@@ -398,6 +400,15 @@ export default function ViewWaveHacksPage() {
                         }`}>
                           {hack.isPublic ? 'Public' : 'Private'}
                         </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            sendMessage(`view_wave_cute_detail ID: ${hack.id}`)
+                          }
+                          className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-md bg-cyan-600 hover:bg-cyan-700 text-white transition-colors"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
                   );
