@@ -14,7 +14,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: "📥 Checkout code"
         uses: actions/checkout@v4
@@ -22,22 +22,22 @@ jobs:
       - name: "🧰 Setup Node.js"
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: "🛠️ Setup pnpm"
-        uses: pnpm/action-setup@v4
+      - name: "🛠️ Setup Bun"
+        uses: oven-sh/setup-bun@v1
         with:
-          version: latest
+          bun-version: latest
 
       - name: "📦 Install dependencies"
         run: |
-          # Install dependencies with pnpm
-          pnpm install --frozen-lockfile
+          # Install dependencies with Bun
+          bun install --frozen-lockfile
         env:
           PYTHON: python3
 
       - name: "🛠️ Install Vercel CLI"
-        run: pnpm add -g vercel@latest
+        run: bun add --global vercel@latest
 
       - name: "🔎 Find existing Vercel project"
         id: cleanup-projects
@@ -47,25 +47,25 @@ jobs:
           # Get repository name for pattern matching
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
           REPO_PATTERN="${REPO_NAME}-"
-          
+
           echo "========================================="
           echo "Searching for existing Vercel projects"
           echo "Pattern: ${REPO_PATTERN}*"
           echo "========================================="
-          
+
           # List all Vercel projects
           PROJECTS=$(curl -s -X GET \
             "https://api.vercel.com/v9/projects" \
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
             -H "Content-Type: application/json")
-          
+
           # Select the most recently updated project that matches the pattern
           MATCHING=$(echo "$PROJECTS" | jq -r \
             ".projects | map(select(.name | startswith(\"${REPO_PATTERN}\"))) | sort_by(.updatedAt // 0) | reverse | .[0]")
-          
+
           EXISTING_PROJECT_NAME=$(echo "$MATCHING" | jq -r '.name // empty')
           EXISTING_PROJECT_ID=$(echo "$MATCHING" | jq -r '.id // empty')
-          
+
           if [ -n "$EXISTING_PROJECT_NAME" ] && [ -n "$EXISTING_PROJECT_ID" ]; then
             echo "✅ Found existing Vercel project: $EXISTING_PROJECT_NAME"
             echo "existing_project_name=$EXISTING_PROJECT_NAME" >> $GITHUB_OUTPUT
@@ -85,48 +85,48 @@ jobs:
           # If a matching project already exists, reuse it; otherwise create a new project
           EXISTING_PROJECT_ID="${{ steps.cleanup-projects.outputs.existing_project_id }}"
           EXISTING_PROJECT_NAME="${{ steps.cleanup-projects.outputs.existing_project_name }}"
-          
+
           if [ -n "$EXISTING_PROJECT_ID" ] && [ -n "$EXISTING_PROJECT_NAME" ]; then
             echo "➡️ Using existing Vercel project: $EXISTING_PROJECT_NAME ($EXISTING_PROJECT_ID)"
             echo "project_name=$EXISTING_PROJECT_NAME" >> $GITHUB_OUTPUT
             echo "project_id=$EXISTING_PROJECT_ID" >> $GITHUB_OUTPUT
-            
+
             # Build the XMCP application
             echo "🔨 Building XMCP application..."
             if [ -f "package.json" ] && grep -q '"build"' package.json; then
               echo "Build script found, running build"
-              pnpm run build
+              bun run build
             else
               echo "No build script found in package.json"
               exit 1
             fi
-            
+
             # Link the project to current directory
             echo "🔗 Linking Vercel project..."
             vercel link --token="$VERCEL_TOKEN" --yes --project="$EXISTING_PROJECT_ID"
             exit 0
           fi
-          
+
           # Get repository name
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-          
+
           # Generate random alphanumeric string
           RANDOM_STRING=$(openssl rand -hex 8 | tr -d '\n')
-          
+
           # Combine repository name with random string
           PROJECT_NAME="${REPO_NAME}-${RANDOM_STRING}"
-          
+
           # Ensure minimum length of 26 characters
           while [ ${#PROJECT_NAME} -lt 26 ]; do
             EXTRA_CHARS=$(openssl rand -hex 2 | tr -d '\n')
             PROJECT_NAME="${PROJECT_NAME}${EXTRA_CHARS}"
           done
-          
+
           # Ensure project name is valid (lowercase, alphanumeric, hyphens only)
           PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
-          
+
           echo "Generated project name: $PROJECT_NAME"
-          
+
           # Create new Vercel project
           CREATE_RESPONSE=$(curl -s -X POST \
             "https://api.vercel.com/v9/projects" \
@@ -136,25 +136,25 @@ jobs:
               \"name\": \"$PROJECT_NAME\",
               \"framework\": null
             }")
-          
+
           PROJECT_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id')
-          
+
           if [ "$PROJECT_ID" != "null" ] && [ -n "$PROJECT_ID" ]; then
             echo "✓ Successfully created Vercel project: $PROJECT_NAME"
             echo "Project ID: $PROJECT_ID"
             echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
             echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
-            
+
             # Build the XMCP application
             echo "🔨 Building XMCP application..."
             if [ -f "package.json" ] && grep -q '"build"' package.json; then
               echo "Build script found, running build"
-              pnpm run build
+              bun run build
             else
               echo "No build script found in package.json"
               exit 1
             fi
-            
+
             # Link the project to current directory
             echo "🔗 Linking Vercel project..."
             vercel link --token="$VERCEL_TOKEN" --yes --project="$PROJECT_ID"
@@ -163,26 +163,24 @@ jobs:
             echo "Response: $CREATE_RESPONSE"
             exit 1
           fi
-          
-      
+
       - name: "🔑 Generate Farcaster account association"
         env:
-            NEXT_PUBLIC_APP_DOMAIN: https://${{ steps.cleanup-projects.outputs.existing_project_name }}.vercel.app
-            FARCASTER_FID: ${{ secrets.FARCASTER_FID }}
-            FARCASTER_CUSTODY_ADDRESS: ${{ secrets.FARCASTER_CUSTODY_ADDRESS }}
-            FARCASTER_CUSTODY_PRIVATE_KEY: ${{ secrets.FARCASTER_CUSTODY_PRIVATE_KEY }}
+          NEXT_PUBLIC_APP_DOMAIN: https://${{ steps.cleanup-projects.outputs.existing_project_name }}.vercel.app
+          FARCASTER_FID: ${{ secrets.FARCASTER_FID }}
+          FARCASTER_CUSTODY_ADDRESS: ${{ secrets.FARCASTER_CUSTODY_ADDRESS }}
+          FARCASTER_CUSTODY_PRIVATE_KEY: ${{ secrets.FARCASTER_CUSTODY_PRIVATE_KEY }}
         run: |
-            echo "🔧 Generating Farcaster account association for domain: $NEXT_PUBLIC_APP_DOMAIN"
-            node scripts/generate-farcaster-account-association.js generate
+          echo "🔧 Generating Farcaster account association for domain: $NEXT_PUBLIC_APP_DOMAIN"
+          node scripts/generate-farcaster-account-association.js generate
       - name: "🎨 Generate SVG icons with gradients"
         env:
-            NEXT_PUBLIC_APP_DOMAIN: ${{ steps.cleanup-projects.outputs.existing_project_name }}.vercel.app
+          NEXT_PUBLIC_APP_DOMAIN: ${{ steps.cleanup-projects.outputs.existing_project_name }}.vercel.app
         run: |
           # Export domain URLs for SVG icon generation
-            
+
           echo "🎨 Generating SVG icons with gradient colors"
           node scripts/generate-svg-icons-with-gradient.js
-
 
       - name: "🔐 Set Vercel Environment Variables"
         env:
@@ -194,26 +192,26 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           PROJECT_ID="${{ steps.generate-vercel-project.outputs.project_id }}"
-          
+
           echo "🔐 Setting environment variables in Vercel project..."
-          
+
           # Function to set or update environment variable
           set_env_var() {
             local key=$1
             local value=$2
             local type=${3:-"encrypted"}  # encrypted, secret, or plain
-            
+
             if [ -z "$value" ]; then
               echo "⚠️ Skipping $key (empty value)"
               return
             fi
-            
+
             # Check if env var exists
             EXISTING=$(curl -s -X GET \
               "https://api.vercel.com/v9/projects/${PROJECT_ID}/env" \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Content-Type: application/json" | jq -r ".envs[] | select(.key==\"$key\") | .id")
-            
+
             if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
               echo "✓ Updating $key"
               curl -s -X PATCH \
@@ -239,18 +237,18 @@ jobs:
                 }" > /dev/null
             fi
           }
-          
+
           # Set all environment variables
           set_env_var "POSTGRES_URL" "$POSTGRES_URL" "encrypted"
           set_env_var "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "plain"
           set_env_var "CLERK_SECRET_KEY" "$CLERK_SECRET_KEY" "encrypted"
           set_env_var "TOGETHER_API_KEY" "$TOGETHER_API_KEY" "encrypted"
           set_env_var "GEMINI_API_KEY" "$GEMINI_API_KEY" "encrypted"
-          
+
           echo "✅ Environment variables configured in Vercel"
 
       - name: "🏗️ Build application"
-        run: pnpm run build
+        run: bun run build
         env:
           NODE_ENV: production
           NODE_OPTIONS: "--max-old-space-size=4096"
@@ -263,7 +261,6 @@ jobs:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          
 
       - name: "🚀 Deploy to Vercel (Production)"
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -275,17 +272,17 @@ jobs:
           FARCASTER_CUSTODY_ADDRESS: ${{ secrets.FARCASTER_CUSTODY_ADDRESS }}
           FARCASTER_CUSTODY_PRIVATE_KEY: ${{ secrets.FARCASTER_CUSTODY_PRIVATE_KEY }}
           APP_DOMAIN: https://${{ steps.generate-vercel-project.outputs.project_name }}.vercel.app
-         
+
           # API Keys
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          
+
         run: |
           echo "Deploying to Vercel Production..."
-          
+
           # Deploy to production and capture deployment URL from stdout
           echo "🚀 Starting production deployment..."
           PROJECT_ID="${{ steps.generate-vercel-project.outputs.project_id }}"
@@ -297,13 +294,13 @@ jobs:
             --build-env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" \
             --build-env CLERK_SECRET_KEY="$CLERK_SECRET_KEY" \
             ./ 2>&1 | tee /tmp/vercel_deploy.log | tail -1)
-          
+
           # Show deployment logs
           echo "📋 Deployment output:"
           cat /tmp/vercel_deploy.log
           echo ""
           echo "🔗 Captured deployment URL: $DEPLOYMENT_URL"
-          
+
           # Verify we got a valid deployment URL
           if [[ -z "$DEPLOYMENT_URL" ]]; then
             echo "❌ Failed to capture deployment URL"
@@ -311,19 +308,19 @@ jobs:
             cat /tmp/vercel_deploy.log
             exit 1
           fi
-          
+
           # The deployment URL requires authentication, so we get the actual domain via API
-          
+
           # Get the actual production domain from Vercel API
           echo "🔍 Fetching actual production domain from Vercel API..."
           DOMAINS_RESPONSE=$(curl -s -X GET \
             "https://api.vercel.com/v9/projects/${PROJECT_ID}/domains?production=true" \
             -H "Authorization: Bearer ${VERCEL_TOKEN}" \
             -H "Content-Type: application/json")
-          
+
           # Extract the production domain name (the truncated one)
           PRODUCTION_DOMAIN=$(echo "$DOMAINS_RESPONSE" | jq -r '.domains[0].name' 2>/dev/null || echo "")
-          
+
           if [[ -z "$PRODUCTION_DOMAIN" || "$PRODUCTION_DOMAIN" == "null" ]]; then
             echo "⚠️ Could not fetch production domain via API, constructing from project name..."
             PROJECT_NAME="${{ steps.generate-vercel-project.outputs.project_name }}"
@@ -332,7 +329,7 @@ jobs:
             PRODUCTION_URL="https://${PRODUCTION_DOMAIN}"
             echo "✅ Retrieved actual production domain: $PRODUCTION_DOMAIN"
           fi
-          
+
           echo "📦 Deployment URL (requires auth): $DEPLOYMENT_URL"
           echo "✅ Production domain URL: $PRODUCTION_URL"
           echo "production_url=$PRODUCTION_URL" >> $GITHUB_OUTPUT
@@ -344,9 +341,9 @@ jobs:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             const actualProductionUrl = '${{ steps.deploy-production.outputs.production_url }}';
-            
+
             console.log(`Updating repository homepage to: ${actualProductionUrl}`);
-            
+
             try {
               await github.rest.repos.update({
                 owner: context.repo.owner,
@@ -361,21 +358,21 @@ jobs:
       - name: "📢 Announce deployment and favorite frame"
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && env.deploy_this == 'true'
         env:
-             FARCASTER_BEARER_TOKEN: ${{ secrets.FARCASTER_BEARER_TOKEN }}
+          FARCASTER_BEARER_TOKEN: ${{ secrets.FARCASTER_BEARER_TOKEN }}
         run: |
-                  PRODUCTION_URL="${{ steps.deploy-production.outputs.production_url }}"
-                  # Extract domain from full URL for scripts that expect domain only
-                  DOMAIN=$(echo "$PRODUCTION_URL" | sed 's|https://||' | sed 's|http://||')
-                  
-                  echo "❤️ Debugging domain manifest for $DOMAIN"
-                  node scripts/debug-domain-manifest.js "$DOMAIN"
-        
-                  echo "❤️ Favoriting frame for $DOMAIN" 
-                  node scripts/favorite-frame.js "$DOMAIN"
-                  
-                  echo "🚀 Posting to Farcaster about the new deployment"
-                  node scripts/post-to-farcaster.js "New version deployed at $DOMAIN" "$PRODUCTION_URL"
-                  
+          PRODUCTION_URL="${{ steps.deploy-production.outputs.production_url }}"
+          # Extract domain from full URL for scripts that expect domain only
+          DOMAIN=$(echo "$PRODUCTION_URL" | sed 's|https://||' | sed 's|http://||')
+
+          echo "❤️ Debugging domain manifest for $DOMAIN"
+          node scripts/debug-domain-manifest.js "$DOMAIN"
+
+          echo "❤️ Favoriting frame for $DOMAIN"
+          node scripts/favorite-frame.js "$DOMAIN"
+
+          echo "🚀 Posting to Farcaster about the new deployment"
+          node scripts/post-to-farcaster.js "New version deployed at $DOMAIN" "$PRODUCTION_URL"
+
       - name: "🔍 Deploy to Vercel (Preview)"
         if: github.event_name == 'pull_request'
         id: deploy-preview
@@ -391,7 +388,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "Deploying to Vercel Preview..."
-          
+
           # Deploy to preview and capture URL from stdout
           PROJECT_ID="${{ steps.generate-vercel-project.outputs.project_id }}"
           DEPLOYMENT_URL=$(vercel deploy \
@@ -399,18 +396,18 @@ jobs:
             --yes \
             --build-env NODE_ENV=production \
             ./ 2>/dev/null)
-          
+
           # Verify we got a valid URL
           if [[ -z "$DEPLOYMENT_URL" ]]; then
             echo "❌ Failed to capture preview deployment URL"
             exit 1
           fi
-          
+
           # Ensure the URL is properly formatted
           if [[ ! "$DEPLOYMENT_URL" =~ ^https:// ]]; then
             DEPLOYMENT_URL="https://$DEPLOYMENT_URL"
           fi
-          
+
           echo "✅ Preview deployment URL: $DEPLOYMENT_URL"
           echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
 
