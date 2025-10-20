@@ -164,7 +164,7 @@ jobs:
             addEventListener('fetch', event => {
               event.respondWith(new Response('Deployment placeholder', { status: 200 }));
             });
-              EOF
+            EOF
             CREATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$API_URL" \
               -H "$AUTH_HEADER" \
               -H "Content-Type: application/javascript" \
