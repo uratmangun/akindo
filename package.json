@@ -9,7 +9,10 @@
     "dev": "xmcp dev & next dev --turbopack",
     "build": "xmcp build && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+      "workers:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@farcaster/jfs": "^0.0.6",
