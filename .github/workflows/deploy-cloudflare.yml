@@ -210,8 +210,8 @@ jobs:
         run: |
           # Update wrangler.toml with the generated worker name
           sed -i "s/^name = .*/name = \"${{ steps.generate-worker-name.outputs.worker_name }}\"/" wrangler.toml
-          # Deploy using opennextjs-cloudflare
-          bun run deploy
+          # Deploy using opennextjs-cloudflare (deploy only, skip build since we already built)
+          npx opennextjs-cloudflare deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
