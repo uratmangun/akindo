@@ -9,12 +9,6 @@ const baseURL =
         ? process.env.VERCEL_PROJECT_PRODUCTION_URL
         : process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL);
 
-console.log("[next.config.ts] baseURL:", baseURL);
-console.log("[next.config.ts] NODE_ENV:", process.env.NODE_ENV);
-console.log("[next.config.ts] VERCEL_ENV:", process.env.VERCEL_ENV);
-console.log("[next.config.ts] VERCEL_URL:", process.env.VERCEL_URL);
-console.log("[next.config.ts] VERCEL_PROJECT_PRODUCTION_URL:", process.env.VERCEL_PROJECT_PRODUCTION_URL);
-
 const nextConfig: NextConfig = {
   assetPrefix: baseURL,
   /* config options here */
