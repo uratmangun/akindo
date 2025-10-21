@@ -205,6 +205,27 @@ jobs:
           
           echo "✓ All secrets set successfully"
 
+      - name: "🔑 Generate Farcaster account association"
+        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+        env:
+          NEXT_PUBLIC_APP_DOMAIN: https://${{ steps.generate-worker-name.outputs.worker_host }}
+          FARCASTER_FID: ${{ secrets.FARCASTER_FID }}
+          FARCASTER_CUSTODY_ADDRESS: ${{ secrets.FARCASTER_CUSTODY_ADDRESS }}
+          FARCASTER_CUSTODY_PRIVATE_KEY: ${{ secrets.FARCASTER_CUSTODY_PRIVATE_KEY }}
+        run: |
+          echo "🔧 Generating Farcaster account association for domain: $NEXT_PUBLIC_APP_DOMAIN"
+          node scripts/generate-farcaster-account-association.js generate
+
+      - name: "🎨 Generate SVG icons with gradients"
+        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+        env:
+          NEXT_PUBLIC_APP_DOMAIN: ${{ steps.generate-worker-name.outputs.worker_host }}
+        run: |
+          # Export domain URLs for SVG icon generation
+
+          echo "🎨 Generating SVG icons with gradient colors"
+          node scripts/generate-svg-icons-with-gradient.js
+
       - name: Deploy to Cloudflare Workers (Production)
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
         run: |
