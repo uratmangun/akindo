@@ -1,5 +1,20 @@
 import type { NextConfig } from "next";
-import { baseURL } from "./src/config/baseUrl";
+
+// Compute baseURL directly in next.config.ts to ensure env vars are read at build time
+const baseURL =
+  process.env.NODE_ENV === "development"
+    ? process.env.VERCEL_URL
+    : "https://" +
+      (process.env.VERCEL_ENV === "production"
+        ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+        : process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL);
+
+console.log("[next.config.ts] baseURL:", baseURL);
+console.log("[next.config.ts] NODE_ENV:", process.env.NODE_ENV);
+console.log("[next.config.ts] VERCEL_ENV:", process.env.VERCEL_ENV);
+console.log("[next.config.ts] VERCEL_URL:", process.env.VERCEL_URL);
+console.log("[next.config.ts] VERCEL_PROJECT_PRODUCTION_URL:", process.env.VERCEL_PROJECT_PRODUCTION_URL);
+
 const nextConfig: NextConfig = {
   assetPrefix: baseURL,
   /* config options here */
