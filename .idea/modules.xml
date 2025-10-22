@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/akindo-wavehacks.iml" filepath="$PROJECT_DIR$/.idea/akindo-wavehacks.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../resume-ai-analyzer/.idea/resume-ai-analyzer.iml" filepath="$PROJECT_DIR$/../resume-ai-analyzer/.idea/resume-ai-analyzer.iml" />
     </modules>
   </component>
 </project>
